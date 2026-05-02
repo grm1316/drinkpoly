@@ -21,6 +21,11 @@ export default function GamePage({ onExit }) {
 
   const isMyTurn = room?.current_turn === myPlayerId
   const myPlayer = players.find(p => p.id === myPlayerId)
+  const [attackUsed, setAttackUsed] = useState(false)
+
+  useEffect(() => {
+    if (isMyTurn) setAttackUsed(false)
+  }, [isMyTurn])
 
   useEffect(() => {
     localStorage.setItem('drinkpoly-session', JSON.stringify({ roomId: room.id, myPlayerId }))
@@ -77,8 +82,15 @@ export default function GamePage({ onExit }) {
     return () => supabase.removeChannel(channel)
   }, [])
 
+  async function advanceTurn() {
+    const sorted = [...players].sort((a, b) => a.turn_order - b.turn_order)
+    const currentIdx = sorted.findIndex(p => p.id === room.current_turn)
+    const nextPlayer = sorted[(currentIdx + 1) % sorted.length]
+    await supabase.from('rooms').update({ current_turn: nextPlayer.id }).eq('id', room.id)
+  }
+
   async function handleRoll() {
-    if (!isMyTurn || rolling || cells.length === 0) return
+    if (!isMyTurn || rolling || cells.length === 0 || !myPlayer || attackUsed) return
     setRolling(true)
     playRollSound()
 
@@ -97,16 +109,31 @@ export default function GamePage({ onExit }) {
 
     if (completedLap) {
       playerUpdate.laps = (myPlayer.laps || 0) + 1
-      const rewardType = Math.random() < 0.5 ? 'tickets' : 'attack_tickets'
+      // attack_tickets 컬럼이 없으면 항상 면제권 지급
+      const hasAttackCol = myPlayer.attack_tickets !== undefined
+      const rewardType = hasAttackCol && Math.random() < 0.5 ? 'attack_tickets' : 'tickets'
       playerUpdate[rewardType] = (myPlayer[rewardType] || 0) + 1
       const rewardName = rewardType === 'tickets' ? '면제권' : '저격권'
       setLapReward(rewardName)
       setTimeout(() => setLapReward(null), 3000)
     }
 
-    await supabase.from('players').update(playerUpdate).eq('id', myPlayerId)
+    const { error } = await supabase.from('players').update(playerUpdate).eq('id', myPlayerId)
+    if (error) {
+      // laps/tickets 없이 위치만 재시도
+      await supabase.from('players').update({ position: newPosition }).eq('id', myPlayerId)
+    }
 
     const cell = cells.find(c => c.position === newPosition)
+
+    if (!cell) {
+      // 칸 정보가 없으면 팝업 없이 바로 턴 넘김
+      setRolling(false)
+      setDiceResult(null)
+      await advanceTurn()
+      return
+    }
+
     channelRef.current?.send({
       type: 'broadcast',
       event: 'cell-landed',
@@ -119,15 +146,7 @@ export default function GamePage({ onExit }) {
   async function handleClosePopup() {
     setActiveCell(null)
     setDiceResult(null)
-
-    const sorted = [...players].sort((a, b) => a.turn_order - b.turn_order)
-    const currentIdx = sorted.findIndex(p => p.id === room.current_turn)
-    const nextPlayer = sorted[(currentIdx + 1) % sorted.length]
-
-    await supabase
-      .from('rooms')
-      .update({ current_turn: nextPlayer.id })
-      .eq('id', room.id)
+    await advanceTurn()
   }
 
   async function handleUseTicket() {
@@ -140,6 +159,7 @@ export default function GamePage({ onExit }) {
 
   async function handleUseAttackTicket(targetId) {
     const target = players.find(p => p.id === targetId)
+    if (!target) return
     await supabase
       .from('players')
       .update({ attack_tickets: (myPlayer.attack_tickets || 0) - 1 })
@@ -150,6 +170,8 @@ export default function GamePage({ onExit }) {
       payload: { targetId, attackerName: myPlayer.name, targetName: target.name },
     })
     setShowTargetPicker(false)
+    setAttackUsed(true)
+    await advanceTurn()
   }
 
   function handleExit() {
@@ -213,11 +235,9 @@ export default function GamePage({ onExit }) {
         </div>
       )}
 
-      <PlayerList players={players} currentTurn={room?.current_turn} myPlayerId={myPlayerId} />
-
       <div style={{ width: '100%', maxWidth: '620px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
         <DiceButton isMyTurn={isMyTurn} onRoll={handleRoll} rolling={rolling} diceResult={diceResult} />
-        {isMyTurn && (myPlayer?.attack_tickets || 0) > 0 && (
+        {isMyTurn && !rolling && !diceResult && !attackUsed && (myPlayer?.attack_tickets || 0) > 0 && (
           <button
             onClick={() => setShowTargetPicker(true)}
             style={{
@@ -237,6 +257,8 @@ export default function GamePage({ onExit }) {
           </button>
         )}
       </div>
+
+      <PlayerList players={players} currentTurn={room?.current_turn} myPlayerId={myPlayerId} />
 
       {activeCell && (
         <CellPopup
