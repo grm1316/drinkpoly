@@ -3,7 +3,7 @@ const TYPE_COLORS = {
   mission: '#48cae4',
   penalty: '#a29bfe',
   special: '#ffd93d',
-  neutral: '#636e72',
+  neutral: '#8a9ba8',
 }
 
 const TYPE_LABELS = {
@@ -14,14 +14,23 @@ const TYPE_LABELS = {
   neutral: '중립',
 }
 
+const TYPE_EMOJI = {
+  drink: '🍺',
+  mission: '🎯',
+  penalty: '💀',
+  special: '✨',
+  neutral: '😐',
+}
+
 export default function CellPopup({ cell, isMyTurn, onClose }) {
-  const color = TYPE_COLORS[cell.type] || '#888'
+  const color = TYPE_COLORS[cell.type] || '#8a9ba8'
 
   return (
     <div style={{
       position: 'fixed',
       inset: 0,
-      background: 'rgba(0,0,0,0.75)',
+      background: 'rgba(0,0,0,0.82)',
+      backdropFilter: 'blur(6px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -29,9 +38,9 @@ export default function CellPopup({ cell, isMyTurn, onClose }) {
       padding: '20px',
     }}>
       <div style={{
-        background: '#1e1e1e',
+        background: `linear-gradient(160deg, #1e1c32 0%, #13112a 100%)`,
         border: `2px solid ${color}`,
-        borderRadius: '20px',
+        borderRadius: '24px',
         padding: '36px 28px',
         width: '100%',
         maxWidth: '380px',
@@ -39,25 +48,30 @@ export default function CellPopup({ cell, isMyTurn, onClose }) {
         display: 'flex',
         flexDirection: 'column',
         gap: '20px',
+        animation: 'popupEnter 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+        boxShadow: `0 0 40px ${color}33, 0 20px 60px rgba(0,0,0,0.6)`,
       }}>
-        <div style={{
-          display: 'inline-block',
-          alignSelf: 'center',
-          padding: '5px 16px',
-          borderRadius: '20px',
-          background: color,
-          color: '#000',
-          fontSize: '14px',
-          fontWeight: 'bold',
-        }}>
-          {TYPE_LABELS[cell.type]}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+          <div style={{ fontSize: '36px', lineHeight: 1 }}>{TYPE_EMOJI[cell.type]}</div>
+          <div style={{
+            padding: '5px 18px',
+            borderRadius: '20px',
+            background: color,
+            color: cell.type === 'special' ? '#0f0e1a' : '#fff',
+            fontSize: '13px',
+            fontWeight: '800',
+            letterSpacing: '1px',
+          }}>
+            {TYPE_LABELS[cell.type]}
+          </div>
         </div>
 
         <div style={{
-          fontSize: 'clamp(20px, 5vw, 28px)',
-          fontWeight: 'bold',
+          fontSize: 'clamp(20px, 5vw, 26px)',
+          fontWeight: '700',
           color: '#fff',
-          lineHeight: 1.4,
+          lineHeight: 1.5,
+          textShadow: `0 0 20px ${color}66`,
         }}>
           {cell.description}
         </div>
@@ -66,20 +80,22 @@ export default function CellPopup({ cell, isMyTurn, onClose }) {
           <button
             onClick={onClose}
             style={{
-              padding: '14px',
+              padding: '16px',
               fontSize: '16px',
-              fontWeight: 'bold',
-              background: color,
-              color: '#000',
+              fontWeight: '800',
+              background: `linear-gradient(135deg, ${color} 0%, ${color}cc 100%)`,
+              color: cell.type === 'special' ? '#0f0e1a' : '#fff',
               border: 'none',
-              borderRadius: '12px',
+              borderRadius: '14px',
+              letterSpacing: '0.5px',
+              boxShadow: `0 4px 16px ${color}55`,
             }}
           >
             확인 (다음 턴)
           </button>
         ) : (
-          <p style={{ color: '#666', fontSize: '14px' }}>
-            현재 차례 플레이어가 확인을 눌러야 넘어갑니다
+          <p style={{ color: '#555', fontSize: '13px', fontWeight: '500' }}>
+            차례 플레이어가 확인을 눌러야 넘어갑니다
           </p>
         )}
       </div>

@@ -103,6 +103,7 @@ export default function CreateRoom({ onEnterGame, onBack }) {
       .select()
       .single()
     setRoom(updatedRoom)
+    localStorage.setItem('drinkpoly-session', JSON.stringify({ roomId, myPlayerId: hostPlayer.id }))
     onEnterGame()
   }
 

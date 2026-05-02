@@ -101,6 +101,7 @@ export default function JoinRoom({ onEnterGame, onBack }) {
       setRoom(room)
       setMyPlayerId(existing.id)
       setPlayers(existingPlayers)
+      localStorage.setItem('drinkpoly-session', JSON.stringify({ roomId: room.id, myPlayerId: existing.id }))
       onEnterGame()
       return
     }
@@ -139,6 +140,7 @@ export default function JoinRoom({ onEnterGame, onBack }) {
     setRoomId(room.id)
     setRoomCode(room.code)
     setMaxPlayers(room.max_players)
+    localStorage.setItem('drinkpoly-session', JSON.stringify({ roomId: room.id, myPlayerId: player.id }))
     setLoading(false)
   }
 
