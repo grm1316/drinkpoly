@@ -22,8 +22,11 @@ const TYPE_EMOJI = {
   neutral: '😐',
 }
 
-export default function CellPopup({ cell, isMyTurn, onClose }) {
+export default function CellPopup({ cell, isMyTurn, onClose, myPlayer, onUseTicket }) {
   const color = TYPE_COLORS[cell.type] || '#8a9ba8'
+  const canUseTicket = isMyTurn
+    && (cell.type === 'drink' || cell.type === 'penalty')
+    && (myPlayer?.tickets || 0) > 0
 
   return (
     <div style={{
@@ -38,7 +41,7 @@ export default function CellPopup({ cell, isMyTurn, onClose }) {
       padding: '20px',
     }}>
       <div style={{
-        background: `linear-gradient(160deg, #1e1c32 0%, #13112a 100%)`,
+        background: 'linear-gradient(160deg, #1e1c32 0%, #13112a 100%)',
         border: `2px solid ${color}`,
         borderRadius: '24px',
         padding: '36px 28px',
@@ -77,22 +80,43 @@ export default function CellPopup({ cell, isMyTurn, onClose }) {
         </div>
 
         {isMyTurn ? (
-          <button
-            onClick={onClose}
-            style={{
-              padding: '16px',
-              fontSize: '16px',
-              fontWeight: '800',
-              background: `linear-gradient(135deg, ${color} 0%, ${color}cc 100%)`,
-              color: cell.type === 'special' ? '#0f0e1a' : '#fff',
-              border: 'none',
-              borderRadius: '14px',
-              letterSpacing: '0.5px',
-              boxShadow: `0 4px 16px ${color}55`,
-            }}
-          >
-            확인 (다음 턴)
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {canUseTicket && (
+              <button
+                onClick={onUseTicket}
+                style={{
+                  padding: '14px',
+                  fontSize: '15px',
+                  fontWeight: '800',
+                  background: 'linear-gradient(135deg, #2a2848 0%, #1e1c32 100%)',
+                  color: '#ffd93d',
+                  border: '2px solid rgba(255,217,61,0.5)',
+                  borderRadius: '14px',
+                  cursor: 'pointer',
+                  letterSpacing: '0.5px',
+                }}
+              >
+                면제권 사용 (남은 {myPlayer.tickets}장)
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              style={{
+                padding: '16px',
+                fontSize: '16px',
+                fontWeight: '800',
+                background: `linear-gradient(135deg, ${color} 0%, ${color}cc 100%)`,
+                color: cell.type === 'special' ? '#0f0e1a' : '#fff',
+                border: 'none',
+                borderRadius: '14px',
+                cursor: 'pointer',
+                letterSpacing: '0.5px',
+                boxShadow: `0 4px 16px ${color}55`,
+              }}
+            >
+              확인 (다음 턴)
+            </button>
+          </div>
         ) : (
           <p style={{ color: '#555', fontSize: '13px', fontWeight: '500' }}>
             차례 플레이어가 확인을 눌러야 넘어갑니다

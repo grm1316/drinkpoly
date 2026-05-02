@@ -13,10 +13,14 @@ export default function GamePage({ onExit }) {
   const [activeCell, setActiveCell] = useState(null)
   const [diceResult, setDiceResult] = useState(null)
   const [rolling, setRolling] = useState(false)
+  const [lapReward, setLapReward] = useState(null)
+  const [showTargetPicker, setShowTargetPicker] = useState(false)
+  const [attackedBy, setAttackedBy] = useState(null)
   const channelRef = useRef(null)
   const hiddenAtRef = useRef(null)
 
   const isMyTurn = room?.current_turn === myPlayerId
+  const myPlayer = players.find(p => p.id === myPlayerId)
 
   useEffect(() => {
     localStorage.setItem('drinkpoly-session', JSON.stringify({ roomId: room.id, myPlayerId }))
@@ -45,6 +49,11 @@ export default function GamePage({ onExit }) {
       .channel(`game-${room.id}`, { config: { broadcast: { self: true } } })
       .on('broadcast', { event: 'cell-landed' }, ({ payload }) => {
         setActiveCell(payload.cell)
+      })
+      .on('broadcast', { event: 'player-attacked' }, ({ payload }) => {
+        if (payload.targetId === myPlayerId) {
+          setAttackedBy(payload.attackerName)
+        }
       })
       .on('postgres_changes', {
         event: 'UPDATE',
@@ -80,16 +89,24 @@ export default function GamePage({ onExit }) {
     setDiceResult(dice)
     playLandSound()
 
-    const myPlayer = players.find(p => p.id === myPlayerId)
-    const newPosition = (myPlayer.position + dice) % 36
+    const rawNext = myPlayer.position + dice
+    const completedLap = rawNext >= 36
+    const newPosition = rawNext % 36
 
-    await supabase
-      .from('players')
-      .update({ position: newPosition })
-      .eq('id', myPlayerId)
+    const playerUpdate = { position: newPosition }
+
+    if (completedLap) {
+      playerUpdate.laps = (myPlayer.laps || 0) + 1
+      const rewardType = Math.random() < 0.5 ? 'tickets' : 'attack_tickets'
+      playerUpdate[rewardType] = (myPlayer[rewardType] || 0) + 1
+      const rewardName = rewardType === 'tickets' ? '면제권' : '저격권'
+      setLapReward(rewardName)
+      setTimeout(() => setLapReward(null), 3000)
+    }
+
+    await supabase.from('players').update(playerUpdate).eq('id', myPlayerId)
 
     const cell = cells.find(c => c.position === newPosition)
-
     channelRef.current?.send({
       type: 'broadcast',
       event: 'cell-landed',
@@ -113,6 +130,28 @@ export default function GamePage({ onExit }) {
       .eq('id', room.id)
   }
 
+  async function handleUseTicket() {
+    await supabase
+      .from('players')
+      .update({ tickets: (myPlayer.tickets || 0) - 1 })
+      .eq('id', myPlayerId)
+    handleClosePopup()
+  }
+
+  async function handleUseAttackTicket(targetId) {
+    const target = players.find(p => p.id === targetId)
+    await supabase
+      .from('players')
+      .update({ attack_tickets: (myPlayer.attack_tickets || 0) - 1 })
+      .eq('id', myPlayerId)
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'player-attacked',
+      payload: { targetId, attackerName: myPlayer.name, targetName: target.name },
+    })
+    setShowTargetPicker(false)
+  }
+
   function handleExit() {
     if (window.confirm('게임을 나가시겠습니까?')) {
       localStorage.removeItem('drinkpoly-session')
@@ -121,6 +160,7 @@ export default function GamePage({ onExit }) {
   }
 
   const currentPlayer = players.find(p => p.id === room?.current_turn)
+  const otherPlayers = players.filter(p => p.id !== myPlayerId)
 
   return (
     <div style={{
@@ -132,9 +172,13 @@ export default function GamePage({ onExit }) {
       minHeight: '100vh',
       background: 'radial-gradient(ellipse at 50% 0%, #1e1a3a 0%, #0f0e1a 60%)',
     }}>
+      {/* 헤더 */}
       <div style={{ width: '100%', maxWidth: '460px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ fontSize: '13px', fontWeight: '700', color: '#ffd93d', letterSpacing: '1px' }}>
           DrinkPoly
+        </div>
+        <div style={{ fontSize: '13px', color: '#555', fontWeight: '700', letterSpacing: '3px' }}>
+          {room?.code}
         </div>
         <button
           onClick={handleExit}
@@ -146,6 +190,7 @@ export default function GamePage({ onExit }) {
             color: '#555',
             border: '1px solid #2a2848',
             borderRadius: '8px',
+            cursor: 'pointer',
           }}
         >
           나가기
@@ -169,9 +214,189 @@ export default function GamePage({ onExit }) {
       )}
 
       <PlayerList players={players} currentTurn={room?.current_turn} myPlayerId={myPlayerId} />
-      <DiceButton isMyTurn={isMyTurn} onRoll={handleRoll} rolling={rolling} diceResult={diceResult} />
+
+      <div style={{ width: '100%', maxWidth: '460px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+        <DiceButton isMyTurn={isMyTurn} onRoll={handleRoll} rolling={rolling} diceResult={diceResult} />
+        {isMyTurn && (myPlayer?.attack_tickets || 0) > 0 && (
+          <button
+            onClick={() => setShowTargetPicker(true)}
+            style={{
+              padding: '10px 28px',
+              fontSize: '14px',
+              fontWeight: '700',
+              background: 'linear-gradient(135deg, #c0392b 0%, #922b21 100%)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '12px',
+              cursor: 'pointer',
+              letterSpacing: '0.5px',
+              boxShadow: '0 4px 16px rgba(192,57,43,0.4)',
+            }}
+          >
+            저격권 사용 ({myPlayer.attack_tickets}장)
+          </button>
+        )}
+      </div>
+
       {activeCell && (
-        <CellPopup cell={activeCell} isMyTurn={isMyTurn} onClose={handleClosePopup} />
+        <CellPopup
+          cell={activeCell}
+          isMyTurn={isMyTurn}
+          onClose={handleClosePopup}
+          myPlayer={myPlayer}
+          onUseTicket={handleUseTicket}
+        />
+      )}
+
+      {/* 바퀴 완주 리워드 토스트 */}
+      {lapReward && (
+        <div style={{
+          position: 'fixed',
+          top: '24px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'linear-gradient(135deg, #ffd93d 0%, #f39c12 100%)',
+          color: '#0f0e1a',
+          padding: '14px 28px',
+          borderRadius: '16px',
+          fontWeight: '900',
+          fontSize: '16px',
+          zIndex: 200,
+          boxShadow: '0 4px 24px rgba(255,217,61,0.5)',
+          whiteSpace: 'nowrap',
+          animation: 'popupEnter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+        }}>
+          바퀴 완주! {lapReward} 1장 획득
+        </div>
+      )}
+
+      {/* 저격 당했을 때 팝업 */}
+      {attackedBy && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.85)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 150,
+            padding: '20px',
+          }}
+        >
+          <div style={{
+            background: 'linear-gradient(160deg, #2a1010 0%, #1a0808 100%)',
+            border: '2px solid #ff6b6b',
+            borderRadius: '24px',
+            padding: '36px 28px',
+            maxWidth: '340px',
+            width: '100%',
+            textAlign: 'center',
+            animation: 'popupEnter 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+            boxShadow: '0 0 40px rgba(255,107,107,0.4)',
+          }}>
+            <div style={{ fontSize: '52px', marginBottom: '12px', lineHeight: 1 }}>🎯</div>
+            <div style={{ fontSize: '22px', fontWeight: '900', color: '#ff6b6b', marginBottom: '8px' }}>
+              저격당했습니다!
+            </div>
+            <div style={{ fontSize: '15px', color: '#aaa', marginBottom: '20px' }}>
+              {attackedBy}이(가) 저격권을 사용했습니다
+            </div>
+            <div style={{ fontSize: '26px', fontWeight: '900', color: '#fff', marginBottom: '24px' }}>
+              1잔 마시세요!
+            </div>
+            <button
+              onClick={() => setAttackedBy(null)}
+              style={{
+                padding: '14px 32px',
+                fontSize: '15px',
+                fontWeight: '800',
+                background: '#ff6b6b',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                width: '100%',
+              }}
+            >
+              마셨습니다
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 저격 타겟 선택 */}
+      {showTargetPicker && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.85)',
+          backdropFilter: 'blur(6px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 150,
+          padding: '20px',
+        }}>
+          <div style={{
+            background: 'linear-gradient(160deg, #1e1c32 0%, #13112a 100%)',
+            border: '2px solid #ff6b6b',
+            borderRadius: '24px',
+            padding: '28px',
+            width: '100%',
+            maxWidth: '340px',
+            animation: 'popupEnter 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+            boxShadow: '0 0 40px rgba(255,107,107,0.3)',
+          }}>
+            <div style={{ fontSize: '18px', fontWeight: '800', color: '#ff6b6b', marginBottom: '4px', textAlign: 'center' }}>
+              저격권 사용
+            </div>
+            <div style={{ fontSize: '13px', color: '#666', marginBottom: '20px', textAlign: 'center' }}>
+              저격할 플레이어를 선택하세요
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {otherPlayers.map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => handleUseAttackTicket(p.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '14px 16px',
+                    borderRadius: '12px',
+                    background: '#2a2848',
+                    border: '1.5px solid #3a3860',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  <span style={{ fontSize: '24px', lineHeight: 1 }}>{p.avatar || '🎲'}</span>
+                  <span style={{ fontSize: '15px', fontWeight: '600', color: '#fff', flex: 1 }}>{p.name}</span>
+                  <span style={{ fontSize: '12px', color: '#666' }}>{p.position}칸</span>
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowTargetPicker(false)}
+              style={{
+                width: '100%',
+                marginTop: '12px',
+                padding: '12px',
+                fontSize: '14px',
+                fontWeight: '600',
+                background: 'transparent',
+                color: '#555',
+                border: '1px solid #2a2848',
+                borderRadius: '10px',
+                cursor: 'pointer',
+              }}
+            >
+              취소
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )

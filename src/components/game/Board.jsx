@@ -1,17 +1,25 @@
 const TYPE_COLORS = {
-  drink: '#ff6b6b',
-  mission: '#48cae4',
-  penalty: '#a29bfe',
-  special: '#ffd93d',
-  neutral: '#636e72',
+  drink: '#e05252',
+  mission: '#2eb8d8',
+  penalty: '#9b8fe4',
+  special: '#e8c82a',
+  neutral: '#4a5568',
 }
 
-const TYPE_LABELS = {
-  drink: '술',
-  mission: '미션',
-  penalty: '벌칙',
-  special: '특수',
-  neutral: '중립',
+const TYPE_DARK_COLORS = {
+  drink: '#a03030',
+  mission: '#1a8aaa',
+  penalty: '#6a5fc0',
+  special: '#b09010',
+  neutral: '#2d3748',
+}
+
+const TYPE_ICONS = {
+  drink: '🍺',
+  mission: '🎯',
+  penalty: '💀',
+  special: '✨',
+  neutral: '😐',
 }
 
 const PLAYER_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#fd79a8']
@@ -39,7 +47,7 @@ export default function Board({ cells, players, myPlayerId }) {
       gridTemplateRows: 'repeat(10, 1fr)',
       width: 'min(92vw, 460px)',
       height: 'min(92vw, 460px)',
-      border: '2px solid rgba(255,217,61,0.25)',
+      border: '2px solid rgba(255,217,61,0.3)',
       borderRadius: '14px',
       overflow: 'hidden',
       flexShrink: 0,
@@ -74,7 +82,9 @@ export default function Board({ cells, players, myPlayerId }) {
       {cells.map(cell => {
         const { gridRow, gridColumn } = getGridPos(cell.position)
         const playersHere = playersByPosition[cell.position] || []
-        const bg = TYPE_COLORS[cell.type] || '#636e72'
+        const bg = TYPE_COLORS[cell.type] || '#4a5568'
+        const bgDark = TYPE_DARK_COLORS[cell.type] || '#2d3748'
+        const icon = TYPE_ICONS[cell.type] || '❓'
 
         return (
           <div
@@ -82,48 +92,57 @@ export default function Board({ cells, players, myPlayerId }) {
             style={{
               gridRow,
               gridColumn,
-              background: bg,
-              border: '1px solid rgba(0,0,0,0.2)',
+              background: `linear-gradient(145deg, ${bg} 0%, ${bgDark} 100%)`,
+              border: '1px solid rgba(0,0,0,0.35)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '2px 1px',
+              justifyContent: 'center',
+              padding: '1px',
               position: 'relative',
               overflow: 'hidden',
             }}
           >
+            {/* 위치 번호 */}
             <div style={{
-              fontSize: 'clamp(6px, 1.5vw, 9px)',
-              color: 'rgba(0,0,0,0.75)',
-              lineHeight: 1,
+              position: 'absolute',
+              top: '1px',
+              left: '2px',
+              fontSize: 'clamp(4px, 0.9vw, 6px)',
+              color: 'rgba(255,255,255,0.55)',
               fontWeight: '700',
-            }}>
-              {TYPE_LABELS[cell.type]}
-            </div>
-            <div style={{
-              fontSize: 'clamp(5px, 1.1vw, 8px)',
-              color: 'rgba(0,0,0,0.5)',
               lineHeight: 1,
-              fontWeight: '500',
             }}>
               {cell.position}
             </div>
-            {playersHere.length > 0 && (
+
+            {/* 플레이어 있으면 플레이어, 없으면 타입 아이콘 */}
+            {playersHere.length > 0 ? (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1px', justifyContent: 'center' }}>
                 {playersHere.map(p => (
                   <div
                     key={p.id}
                     title={p.name}
                     style={{
-                      fontSize: 'clamp(10px, 2.4vw, 16px)',
+                      fontSize: 'clamp(12px, 2.8vw, 18px)',
                       lineHeight: 1,
-                      filter: p.id === myPlayerId ? 'drop-shadow(0 0 3px rgba(255,255,255,0.9))' : 'none',
+                      filter: p.id === myPlayerId
+                        ? 'drop-shadow(0 0 4px rgba(255,255,255,1)) drop-shadow(0 0 8px rgba(255,217,61,0.8))'
+                        : 'drop-shadow(0 1px 3px rgba(0,0,0,0.7))',
                     }}
                   >
                     {p.avatar || '🎲'}
                   </div>
                 ))}
+              </div>
+            ) : (
+              <div style={{
+                fontSize: 'clamp(10px, 2.3vw, 15px)',
+                lineHeight: 1,
+                filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))',
+              }}>
+                {icon}
               </div>
             )}
           </div>
