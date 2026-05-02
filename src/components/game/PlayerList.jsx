@@ -4,7 +4,7 @@ export default function PlayerList({ players, currentTurn, myPlayerId }) {
   const sorted = [...players].sort((a, b) => a.turn_order - b.turn_order)
 
   return (
-    <div style={{ width: '100%', maxWidth: '460px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+    <div style={{ width: '100%', maxWidth: '620px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
       {sorted.map((p, idx) => {
         const isCurrentTurn = p.id === currentTurn
         const isMe = p.id === myPlayerId

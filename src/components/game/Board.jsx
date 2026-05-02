@@ -14,12 +14,12 @@ const TYPE_DARK_COLORS = {
   neutral: '#2d3748',
 }
 
-const TYPE_ICONS = {
-  drink: '🍺',
-  mission: '🎯',
-  penalty: '💀',
-  special: '✨',
-  neutral: '😐',
+const TYPE_LABELS = {
+  drink: '술',
+  mission: '미션',
+  penalty: '벌칙',
+  special: '특수',
+  neutral: '중립',
 }
 
 const PLAYER_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#fd79a8']
@@ -45,8 +45,8 @@ export default function Board({ cells, players, myPlayerId }) {
       display: 'grid',
       gridTemplateColumns: 'repeat(10, 1fr)',
       gridTemplateRows: 'repeat(10, 1fr)',
-      width: 'min(92vw, 460px)',
-      height: 'min(92vw, 460px)',
+      width: 'min(96vw, 620px)',
+      height: 'min(96vw, 620px)',
       border: '2px solid rgba(255,217,61,0.3)',
       borderRadius: '14px',
       overflow: 'hidden',
@@ -84,7 +84,7 @@ export default function Board({ cells, players, myPlayerId }) {
         const playersHere = playersByPosition[cell.position] || []
         const bg = TYPE_COLORS[cell.type] || '#4a5568'
         const bgDark = TYPE_DARK_COLORS[cell.type] || '#2d3748'
-        const icon = TYPE_ICONS[cell.type] || '❓'
+        const label = TYPE_LABELS[cell.type] || ''
 
         return (
           <div
@@ -92,33 +92,32 @@ export default function Board({ cells, players, myPlayerId }) {
             style={{
               gridRow,
               gridColumn,
-              background: `linear-gradient(145deg, ${bg} 0%, ${bgDark} 100%)`,
-              border: '1px solid rgba(0,0,0,0.35)',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15)',
+              background: `linear-gradient(160deg, ${bg} 0%, ${bgDark} 100%)`,
+              border: '1px solid rgba(0,0,0,0.4)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              justifyContent: 'center',
-              padding: '1px',
+              justifyContent: 'space-between',
+              padding: '2px 1px 2px',
               position: 'relative',
               overflow: 'hidden',
             }}
           >
-            {/* 위치 번호 */}
+            {/* 타입 라벨 */}
             <div style={{
-              position: 'absolute',
-              top: '1px',
-              left: '2px',
-              fontSize: 'clamp(4px, 0.9vw, 6px)',
-              color: 'rgba(255,255,255,0.55)',
-              fontWeight: '700',
+              fontSize: 'clamp(6px, 1.4vw, 9px)',
+              color: 'rgba(255,255,255,0.9)',
               lineHeight: 1,
+              fontWeight: '800',
+              textShadow: '0 1px 2px rgba(0,0,0,0.6)',
+              letterSpacing: '-0.3px',
             }}>
-              {cell.position}
+              {label}
             </div>
 
-            {/* 플레이어 있으면 플레이어, 없으면 타입 아이콘 */}
-            {playersHere.length > 0 ? (
+            {/* 플레이어 토큰 */}
+            {playersHere.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1px', justifyContent: 'center' }}>
                 {playersHere.map(p => (
                   <div
@@ -128,23 +127,25 @@ export default function Board({ cells, players, myPlayerId }) {
                       fontSize: 'clamp(12px, 2.8vw, 18px)',
                       lineHeight: 1,
                       filter: p.id === myPlayerId
-                        ? 'drop-shadow(0 0 4px rgba(255,255,255,1)) drop-shadow(0 0 8px rgba(255,217,61,0.8))'
-                        : 'drop-shadow(0 1px 3px rgba(0,0,0,0.7))',
+                        ? 'drop-shadow(0 0 4px #fff) drop-shadow(0 0 8px rgba(255,217,61,0.9))'
+                        : 'drop-shadow(0 1px 3px rgba(0,0,0,0.9))',
                     }}
                   >
                     {p.avatar || '🎲'}
                   </div>
                 ))}
               </div>
-            ) : (
-              <div style={{
-                fontSize: 'clamp(10px, 2.3vw, 15px)',
-                lineHeight: 1,
-                filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))',
-              }}>
-                {icon}
-              </div>
             )}
+
+            {/* 위치 번호 */}
+            <div style={{
+              fontSize: 'clamp(5px, 1vw, 7px)',
+              color: 'rgba(255,255,255,0.6)',
+              lineHeight: 1,
+              fontWeight: '600',
+            }}>
+              {cell.position}
+            </div>
           </div>
         )
       })}

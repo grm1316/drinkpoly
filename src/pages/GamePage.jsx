@@ -167,13 +167,13 @@ export default function GamePage({ onExit }) {
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      padding: '12px 16px 32px',
+      padding: '12px 12px 32px',
       gap: '12px',
       minHeight: '100vh',
       background: 'radial-gradient(ellipse at 50% 0%, #1e1a3a 0%, #0f0e1a 60%)',
     }}>
       {/* 헤더 */}
-      <div style={{ width: '100%', maxWidth: '460px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ width: '100%', maxWidth: '620px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ fontSize: '13px', fontWeight: '700', color: '#ffd93d', letterSpacing: '1px' }}>
           DrinkPoly
         </div>
@@ -202,7 +202,7 @@ export default function GamePage({ onExit }) {
       {currentPlayer && (
         <div style={{
           width: '100%',
-          maxWidth: '460px',
+          maxWidth: '620px',
           textAlign: 'center',
           fontSize: '14px',
           fontWeight: '600',
@@ -215,7 +215,7 @@ export default function GamePage({ onExit }) {
 
       <PlayerList players={players} currentTurn={room?.current_turn} myPlayerId={myPlayerId} />
 
-      <div style={{ width: '100%', maxWidth: '460px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+      <div style={{ width: '100%', maxWidth: '620px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
         <DiceButton isMyTurn={isMyTurn} onRoll={handleRoll} rolling={rolling} diceResult={diceResult} />
         {isMyTurn && (myPlayer?.attack_tickets || 0) > 0 && (
           <button
