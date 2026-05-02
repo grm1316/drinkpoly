@@ -17,6 +17,14 @@ export default function GamePage() {
   const isMyTurn = room?.current_turn === myPlayerId
 
   useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') window.location.reload()
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [])
+
+  useEffect(() => {
     supabase.from('cells').select().order('position').then(({ data }) => {
       if (data) setCells(data)
     })
