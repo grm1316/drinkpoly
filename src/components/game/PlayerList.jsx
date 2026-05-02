@@ -27,13 +27,13 @@ export default function PlayerList({ players, currentTurn, myPlayerId }) {
             }}
           >
             <div style={{
-              width: '18px',
-              height: '18px',
-              borderRadius: '50%',
-              background: color,
+              fontSize: '22px',
+              lineHeight: 1,
               flexShrink: 0,
-              boxShadow: isCurrentTurn ? `0 0 8px ${color}` : 'none',
-            }} />
+              filter: isCurrentTurn ? 'drop-shadow(0 0 6px rgba(255,217,61,0.8))' : 'none',
+            }}>
+              {p.avatar || '🎲'}
+            </div>
             <span style={{
               fontWeight: isMe ? '700' : '400',
               flex: 1,

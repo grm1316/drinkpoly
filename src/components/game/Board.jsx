@@ -116,14 +116,13 @@ export default function Board({ cells, players, myPlayerId }) {
                     key={p.id}
                     title={p.name}
                     style={{
-                      width: 'clamp(8px, 2vw, 13px)',
-                      height: 'clamp(8px, 2vw, 13px)',
-                      borderRadius: '50%',
-                      background: PLAYER_COLORS[p.colorIdx % PLAYER_COLORS.length],
-                      border: p.id === myPlayerId ? '2px solid #fff' : '1px solid rgba(0,0,0,0.3)',
-                      boxShadow: p.id === myPlayerId ? '0 0 4px rgba(255,255,255,0.6)' : 'none',
+                      fontSize: 'clamp(10px, 2.4vw, 16px)',
+                      lineHeight: 1,
+                      filter: p.id === myPlayerId ? 'drop-shadow(0 0 3px rgba(255,255,255,0.9))' : 'none',
                     }}
-                  />
+                  >
+                    {p.avatar || '🎲'}
+                  </div>
                 ))}
               </div>
             )}

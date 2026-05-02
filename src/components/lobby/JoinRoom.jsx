@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useGame } from '../../context/GameContext'
+import { AVATARS } from '../../lib/avatars'
 
 const inputStyle = {
   width: '100%',
@@ -25,6 +26,7 @@ export default function JoinRoom({ onEnterGame, onBack }) {
   const { setRoom, setPlayers, setMyPlayerId } = useGame()
   const [code, setCode] = useState('')
   const [name, setName] = useState('')
+  const [avatar, setAvatar] = useState('🐻')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [roomId, setRoomId] = useState(null)
@@ -123,7 +125,7 @@ export default function JoinRoom({ onEnterGame, onBack }) {
 
     const { data: player, error: playerError } = await supabase
       .from('players')
-      .insert({ room_id: room.id, name: name.trim(), position: 0, turn_order: turnOrder, is_host: false })
+      .insert({ room_id: room.id, name: name.trim(), avatar, position: 0, turn_order: turnOrder, is_host: false })
       .select()
       .single()
 
@@ -156,8 +158,9 @@ export default function JoinRoom({ onEnterGame, onBack }) {
           <div style={{ background: '#1e1c32', borderRadius: '14px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ fontSize: '13px', color: '#aaa', fontWeight: '500' }}>참여자 ({localPlayers.length}/{maxPlayers}명)</div>
             {localPlayers.map(p => (
-              <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', background: '#2a2848', borderRadius: '10px', fontSize: '15px', fontWeight: '500' }}>
-                <span style={{ flex: 1 }}>{p.name}</span>
+              <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: '#2a2848', borderRadius: '10px' }}>
+                <span style={{ fontSize: '22px', lineHeight: 1 }}>{p.avatar || '🎲'}</span>
+                <span style={{ flex: 1, fontSize: '15px', fontWeight: '500' }}>{p.name}</span>
                 {p.is_host && <span style={{ fontSize: '11px', color: '#ffd93d', fontWeight: '700' }}>방장</span>}
               </div>
             ))}
@@ -174,18 +177,41 @@ export default function JoinRoom({ onEnterGame, onBack }) {
           <button onClick={onBack} style={{ background: 'transparent', border: 'none', color: '#aaa', fontSize: '24px', padding: '0', lineHeight: 1 }}>←</button>
           <span style={{ fontSize: '20px', fontWeight: '700' }}>방 참여하기</span>
         </div>
+
         <div>
           <label style={labelStyle}>방 코드</label>
           <input type="text" placeholder="4자리 코드 입력" value={code} onChange={e => setCode(e.target.value.toUpperCase())} maxLength={4}
             style={{ ...inputStyle, fontSize: '24px', fontWeight: '700', letterSpacing: '6px', textAlign: 'center' }} />
         </div>
+
         <div>
           <label style={labelStyle}>닉네임</label>
           <input type="text" placeholder="닉네임을 입력하세요" value={name} onChange={e => setName(e.target.value)} maxLength={10} style={inputStyle} />
         </div>
+
+        <div>
+          <label style={labelStyle}>내 캐릭터 <span style={{ fontSize: '20px' }}>{avatar}</span></label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
+            {AVATARS.map(a => (
+              <button key={a} onClick={() => setAvatar(a)} style={{
+                padding: '10px 0', fontSize: '22px',
+                background: avatar === a ? '#2a2848' : '#16152a',
+                border: avatar === a ? '2px solid #ffd93d' : '2px solid transparent',
+                borderRadius: '10px', cursor: 'pointer', lineHeight: 1,
+              }}>
+                {a}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {error && <p style={{ color: '#ff6b6b', fontSize: '14px', textAlign: 'center' }}>{error}</p>}
-        <button onClick={handleJoin} disabled={loading}
-          style={{ padding: '18px', fontSize: '17px', fontWeight: '700', background: '#ffd93d', color: '#0f0e1a', border: 'none', borderRadius: '14px', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
+
+        <button onClick={handleJoin} disabled={loading} style={{
+          padding: '18px', fontSize: '17px', fontWeight: '700',
+          background: '#ffd93d', color: '#0f0e1a', border: 'none', borderRadius: '14px',
+          cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
+        }}>
           {loading ? '입장 중...' : '입장하기'}
         </button>
       </div>
